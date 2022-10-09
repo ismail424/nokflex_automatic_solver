@@ -1,0 +1,5 @@
+dataclasses_json
+dataclasses
+phpserialize
+requests
+argparse
