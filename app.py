@@ -5,13 +5,12 @@ import argparse
 
 class Nokflex:
     URL = 'https://nokflex-api.nok.se/api'
-    def __init__(self, token: str, assignment_id: id, course_id: int , group_id: int,  debug = False ):        
+    def __init__(self, token: str, assignment_id: int, course_id: int ,  debug = False ):        
         self.headers = {
             'Authorization': f'Bearer {token}'
         }
         self.debug = debug        
         self.subpart_id = None
-        self.group_id = group_id
         self.course_id = course_id
         self.assignment_id = assignment_id
         
@@ -28,11 +27,10 @@ class Nokflex:
             'courseId': f'{self.course_id}',
         }
         if assignment_id is not None:
-            params['assignmentId'] = assignment_id
+            params['assignmentId'] = str(assignment_id)
         else:
-            params['assignmentId'] = self.assignment_id
+            params['assignmentId'] = str(self.assignment_id)
         
-
         response = requests.get(f'{self.URL}/v2/assignment/subpart', params=params, headers=self.headers)
         
         if response.status_code == 200:
@@ -47,9 +45,9 @@ class Nokflex:
             return json.load(f)
         
         
-    def get_assignment(self):
+    def get_assignment(self , assignment_id: int):
         for assignment in self.data['subpart'][0]['assignments']:
-            if assignment['assignmentID'] == self.assignment_id:
+            if assignment['assignmentID'] == assignment_id:
                 return Assignment.from_dict(assignment)
             
         raise Exception('Assignment not found')
@@ -63,7 +61,6 @@ class Nokflex:
         json_data = {
             'response': [],
             'slots': [],
-            'groupId': f'{self.group_id}',
             'subpartId': f'{self.subpart_id}',
         }
 
@@ -81,7 +78,6 @@ class Nokflex:
         if response.status_code == 200:
             if response.json()['correct'] == 'true':
                 return f'Assignment {assignment.assignment_id} submitted successfully'
-            print(json_data)
             return f'Assignment {assignment.assignment_id} submitted but not correct'        
         
         raise Exception('The request failed with status code ' + str(response.status_code))
@@ -89,7 +85,9 @@ class Nokflex:
 
 
 if __name__ == '__main__':
-    token = ' token here '
+    token = 'token' # Your token here
+    course_id = 8940 # Your course id here
+    
     parser = argparse.ArgumentParser()
 
     parser._action_groups.pop()
@@ -99,13 +97,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
 
-    user = Nokflex(token, args.id)
+    user = Nokflex(token, args.id, course_id)
     if args.all is not None:
         for assignment in user.data['subpart'][0]['assignments']:
             print(user.submit_assignment(Assignment.from_dict(assignment)))
     else:
         print("Submit assignment with id: " + str(args.id))
-        assignment = user.get_assignment()
+        assignment = user.get_assignment(args.id)
         print(user.submit_assignment(assignment))
 
 
